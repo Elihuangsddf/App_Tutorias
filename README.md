@@ -33,6 +33,7 @@ pares dentro de la misma comunidad estudiantil.
 - [Convenciones de Git](#convenciones-de-git)
 - [Decisiones y coherencia documental](#decisiones-y-coherencia-documental)
 - [Uso de inteligencia artificial](#uso-de-inteligencia-artificial)
+- [Referencias](#referencias)
 
 
 ---
@@ -444,3 +445,14 @@ Fuentes técnicas consultadas:
 ## Licencia
 
 Proyecto académico de la clase de Móviles-UPMH. Sin licencia definida por ahora.
+
+---
+
+## Referencias
+
+Materiales de consulta y proyecto de clase indicados por el equipo:
+
+1. [Video de referencia 1](https://www.youtube.com/watch?v=D4nhaszNW4o). YouTube.
+2. Zamora, Y. (2021, 11 de mayo). [Login en Flutter](https://technologyfantasy.medium.com/login-en-flutter-3e300083a471). Medium.
+3. [Video de referencia 2](https://www.youtube.com/watch?v=eGUDp_tikdQ). YouTube.
+4. Elihuangsddf. (s. f.). [ViveroAppFluter](https://github.com/Elihuangsddf/ViveroAppFluter). GitHub. Proyecto de prueba utilizado en clase como referencia para el desarrollo.

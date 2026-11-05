@@ -41,7 +41,7 @@ class MockAuthRepository implements AuthRepository {
     // Recorre los elementos de la lista indicada para comprobar o preparar cada uno.
     for (final usuario in usuariosDemo) {
       // Agrega la cuenta a la lista privada de esta demostración.
-      _cuentas.add(_CuentaLocal(usuario, 'Tutorias123!'));
+      _cuentas.add(_CuentaLocal(usuario, 'admin1234'));
       // Cierra el bloque de instrucciones o la definición.
     }
     // Cierra el bloque de instrucciones o la definición.
