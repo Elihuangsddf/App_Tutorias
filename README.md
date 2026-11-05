@@ -17,19 +17,23 @@ pares dentro de la misma comunidad estudiantil.
 
 ## Tabla de contenido
 
+- [Documento de definición y validación del equipo](#documento-de-definición-y-validación-del-equipo)
 - [Alcance de la Etapa 1](#alcance-de-la-etapa-1)
 - [Arquitectura](#arquitectura)
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Modelos y contratos](#modelos-y-contratos)
 - [Pantallas](#pantallas)
 - [Requisitos técnicos y cómo se cubren](#requisitos-técnicos-y-cómo-se-cubren)
+- [Capturas de la aplicación actual](#capturas-de-la-aplicación-actual)
+- [Cuentas locales de prueba](#cuentas-locales-de-prueba)
 - [Cómo ejecutar el proyecto](#cómo-ejecutar-el-proyecto)
 - [Estado del proyecto](#estado-del-proyecto)
 - [Etapa 2 (backlog)](#etapa-2-backlog)
 - [Equipo y roles](#equipo-y-roles)
 - [Convenciones de Git](#convenciones-de-git)
-- [Decisiones abiertas](#decisiones-abiertas)
+- [Decisiones y coherencia documental](#decisiones-y-coherencia-documental)
 - [Uso de inteligencia artificial](#uso-de-inteligencia-artificial)
+
 
 ---
 
@@ -73,66 +77,133 @@ solicitud → Panel de solicitudes.
 
 ## Arquitectura
 
-Los datos viajan en **una sola dirección** y cada capa tiene una única responsabilidad:
+La aplicación separa la interfaz, el estado compartido, los modelos y el acceso a datos.
+El punto de entrada es `lib/main.dart`, que crea los repositorios y registra los tres
+controladores mediante `MultiProvider`.
 
-```
-Pantalla  →  Provider  →  Repository (contrato)  →  Implementación
-                                                     ├── Mock (Etapa 1)
-                                                     └── Firebase Auth / Firestore (Etapa 2)
-```
+| Parte | Responsabilidad | Ubicación |
+|---|---|---|
+| Pantallas | Presentar datos, recoger entradas, mostrar validaciones de campos y enviar acciones al controlador. | `lib/features/` |
+| Providers | Mantener la sesión, los filtros, las solicitudes y los estados de carga y error; notificar cambios a la interfaz. | `lib/providers/` |
+| Repositories | Definir operaciones de datos y resolverlas mediante la implementación seleccionada. | `lib/repositories/` |
+| Models | Representar usuarios, tutores y solicitudes; convertirlos desde y hacia mapas. | `lib/models/` |
+| Componentes compartidos | Reutilizar botones, campos, tarjetas, estilos, formatos y navegación. | `lib/core/` |
 
-### Reglas
+### Recorrido de una acción
 
-1. **Las pantallas no tienen lógica de negocio ni acceden a datos.** Solo dibujan lo que el
-   Provider les entrega (`watch` al construir, `read` dentro de acciones como botones) y le
-   informan lo que hizo el usuario.
-2. **Los Providers no saben de dónde vienen los datos.** Reciben un `Repository` como clase
-   abstracta; la implementación concreta les es indiferente.
-3. **Un solo lugar decide qué implementación se usa: `main.dart`.** Ahí se registran los
-   Providers con `MultiProvider` y se inyectan los repositorios mock. En la Etapa 2 solo cambia
-   la selección de las implementaciones.
+1. Una pantalla consulta su Provider con `watch` para reconstruirse cuando cambian los datos.
+2. Un botón obtiene el Provider con `read` y solicita una operación.
+3. El Provider llama al contrato del Repository que recibió en su constructor.
+4. El Repository consulta o modifica los datos y devuelve el resultado.
+5. El Provider actualiza sus propiedades y llama a `notifyListeners()`; la pantalla refleja el cambio.
 
-### Por qué esta arquitectura
+Por ejemplo, `pantallaNuevaSolicitud.dart` recoge materia, horario y mensaje;
+`SolicitudesProvider.crearSolicitud()` comprueba el rol y prepara la solicitud;
+`MockSolicitudesRepository.crear()` la guarda en memoria. La pantalla no ejecuta consultas SQL.
 
-- Cumple el mínimo técnico del curso (Provider, Model, Repository, rutas con argumentos).
-- Permite que las tres personas trabajen en paralelo sobre contratos ya acordados.
-- Permite sustituir los repositorios locales por implementaciones Firebase sin trasladar consultas a las pantallas.
-- Facilita las pruebas: los repositorios mock son intercambiables y deterministas.
+### Implementación activa
+
+`main.dart` selecciona estas implementaciones para el MVP de la Etapa 1:
+
+| Contrato | Implementación activa | Estado compartido |
+|---|---|---|
+| `AuthRepository` | `MockAuthRepository` | `SesionProvider` |
+| `TutoresRepository` | `MockTutoresRepository` | `TutoresProvider` |
+| `SolicitudesRepository` | `MockSolicitudesRepository` | `SolicitudesProvider` |
+
+`ChangeNotifierProxyProvider` sincroniza las solicitudes cuando cambia la sesión.
+Los datos de ejemplo están en `lib/repositories/datosEjemplo.dart`; los cambios realizados
+durante la ejecución se conservan únicamente en memoria.
+
+La implementación `PostgresAuthRepository` está separada en `lib/repositories/postgres/`.
+Se conserva como alternativa experimental de escritorio y no se importa desde el arranque
+del MVP. La conexión con Firebase queda prevista para la Etapa 2 mediante implementaciones
+que cumplan los mismos contratos.
+
+### Navegación y acceso
+
+`lib/core/routes/rutasAplicacion.dart` contiene rutas nombradas, la pantalla inicial por rol
+y la comprobación de acceso. El detalle del tutor y la nueva solicitud reciben su `idTutor`
+como argumento. El registro público permite crear cuentas de alumno o tutor; el rol de una
+sesión procede de la cuenta autenticada. El administrador tiene un panel informativo propio.
 
 ---
 
 ## Estructura del proyecto
 
-La estructura separa componentes, pantallas, modelos, estado y acceso a datos. Los nombres de
-archivos y variables se conservan en español y camelCase para facilitar su lectura.
+Los archivos se agrupan por responsabilidad y función. Los nombres propios se mantienen en
+español y camelCase; los nombres de las clases y métodos exigidos por Flutter se conservan.
 
 ```text
 lib/
-├── main.dart                   # Arranque del MVP local
+├── main.dart
 ├── core/
-│   ├── routes/                 # Navegación y permisos por rol
-│   ├── theme/                  # Tema, colores y tipografía
-│   ├── utils/                  # Formato, avisos y constantes
-│   └── widgets/                # Botones, campos, tarjetas y logotipo
+│   ├── routes/
+│   │   └── rutasAplicacion.dart
+│   ├── theme/
+│   │   └── temaAplicacion.dart
+│   ├── utils/
+│   │   ├── constantesAplicacion.dart
+│   │   ├── formatoTextos.dart
+│   │   └── mostrarAvisos.dart
+│   └── widgets/
+│       ├── avatarIniciales.dart
+│       ├── avisoSinResultados.dart
+│       ├── barraNavegacion.dart
+│       ├── botonCerrarSesion.dart
+│       ├── botonesAplicacion.dart
+│       ├── botonesFiltro.dart
+│       ├── campoTexto.dart
+│       ├── indicadoresCarga.dart
+│       ├── logotipoTutopar.dart
+│       ├── tarjetaSeccion.dart
+│       ├── tarjetaSolicitud.dart
+│       └── tarjetaTutor.dart
 ├── features/
-│   ├── auth/                   # Bienvenida, inicio de sesión y registro
-│   ├── tutores/                # Catálogo y detalle del tutor
-│   ├── solicitudes/            # Formulario y panel de solicitudes
-│   └── admin/                  # Panel informativo adicional
-├── models/                     # Usuario, Tutor, Solicitud y sus valores
-├── providers/                  # Sesión, catálogo y solicitudes
+│   ├── admin/
+│   │   └── pantallaAdministrador.dart
+│   ├── auth/
+│   │   ├── pantallaBienvenida.dart
+│   │   └── pantallaInicioSesion.dart
+│   ├── solicitudes/
+│   │   ├── pantallaNuevaSolicitud.dart
+│   │   └── pantallaSolicitudes.dart
+│   └── tutores/
+│       ├── pantallaCatalogoTutores.dart
+│       └── pantallaDetalleTutor.dart
+├── models/
+│   ├── modeloSolicitud.dart
+│   ├── modeloTutor.dart
+│   └── modeloUsuario.dart
+├── providers/
+│   ├── controladorSesion.dart
+│   ├── controladorSolicitudes.dart
+│   └── controladorTutores.dart
 └── repositories/
-    ├── datosEjemplo.dart       # Listas locales del MVP
+    ├── datosEjemplo.dart
     ├── repositorioAutenticacion.dart
-    ├── repositorioTutores.dart
     ├── repositorioSolicitudes.dart
-    └── postgres/              # Experimento opcional, fuera del arranque local
+    ├── repositorioTutores.dart
+    └── postgres/
+        └── repositorioAutenticacionPostgres.dart
 ```
 
-El contrato y su implementación simulada comparten archivo. Los Providers reciben los
-repositorios por constructor. `main.dart` selecciona `MockAuthRepository`,
-`MockTutoresRepository` y `MockSolicitudesRepository`; no se necesitan variables de entorno,
-PostgreSQL ni conexión a internet para probar los flujos después de instalar la aplicación.
+### Dónde editar cada parte
+
+| Cambio | Archivo principal |
+|---|---|
+| Colores, tipografía y estilos | [temaAplicacion.dart](lib/core/theme/temaAplicacion.dart) |
+| Navegación y permisos por pantalla | [rutasAplicacion.dart](lib/core/routes/rutasAplicacion.dart) |
+| Formulario de acceso y registro | [pantallaInicioSesion.dart](lib/features/auth/pantallaInicioSesion.dart) |
+| Estado y operaciones de sesión | [controladorSesion.dart](lib/providers/controladorSesion.dart) |
+| Búsqueda y filtros del catálogo | [controladorTutores.dart](lib/providers/controladorTutores.dart) |
+| Creación y respuesta de solicitudes | [controladorSolicitudes.dart](lib/providers/controladorSolicitudes.dart) |
+| Usuarios, tutores y solicitudes de ejemplo | [datosEjemplo.dart](lib/repositories/datosEjemplo.dart) |
+| Selección de repositorios al iniciar | [main.dart](lib/main.dart) |
+
+`assets/images/` contiene el logotipo declarado en `pubspec.yaml` y `assets/fonts/` las fuentes.
+`test/` contiene las pruebas automatizadas, `docs/Diseño/` los bocetos y `docs/capturas/` las
+capturas de los widgets de la versión local.
 
 ---
 
@@ -352,38 +423,21 @@ pantallas. Rol 1 entrega tema y componentes antes de que se construyan las panta
 - Avisar antes de tocar archivos compartidos: `pubspec.yaml`, `main.dart` y `rutasAplicacion.dart`.
 - Antes de abrir un PR: `flutter analyze` sin issues y `flutter test` en verde.
 
----
-
-## Decisiones y coherencia documental
-
-| Tema | Estado comprobable en el código |
-|---|---|
-| Nombre visible de esta compilación | TutoPar. El documento del equipo dice MetroTutor; el equipo debe unificar la decisión. |
-| Navegación | Rutas nombradas de Flutter con argumentos. El documento menciona `go_router`; la rúbrica no obliga a ese paquete. |
-| Datos locales | Listas Dart en `lib/repositories/datosEjemplo.dart`. El documento menciona JSON; el equipo debe reflejar la opción realmente utilizada. |
-| Administración | Panel informativo adicional; no existe aprobación ni gestión de usuarios. |
-| Filtros | Materia, calificación y día en el controlador; búsqueda por nombre o materia. |
-| Persistencia remota | Fuera del MVP; Firebase corresponde al backlog de la Etapa 2. |
 
 ---
 
 ## Uso de inteligencia artificial
 
-La bitácora [AI_LOG.md](AI_LOG.md) registra de forma retrospectiva la ayuda observable en esta
-conversación, incluida la generación de código completo y de partes del README. Esos usos
-superan los límites de la sección 7 de la rúbrica y deben revisarse con el docente. El registro
-no convierte automáticamente esos usos en permitidos ni acredita la defensa individual.
+La bitácora [AI_LOG.md](AI_LOG.md) resume el apoyo utilizado: comentarios del código,
+depuración técnica, ideas iniciales, colores y diseño para Figma. También registra la
+asistencia en generación y modificación de documentación
 
-La revisión técnica de archivos, rutas y verificaciones del 5 de noviembre de 2026 también
-se realizó con asistencia de IA. El equipo debe revisar la documentación final y explicar su
-código. No se generaron ni se alteraron entrevistas o resultados de investigación en este ajuste.
+Fuentes técnicas consultadas:
 
-Fuentes técnicas consultadas durante el trabajo:
-
-- [Flutter: documentación](https://docs.flutter.dev/).
-- [Provider: documentación del paquete](https://pub.dev/packages/provider).
-- [Postgres para Dart: documentación del experimento opcional](https://pub.dev/packages/postgres).
-- [BCrypt para Dart: documentación del experimento opcional](https://pub.dev/packages/bcrypt).
+- [Flutter](https://docs.flutter.dev/).
+- [Provider](https://pub.dev/packages/provider).
+- [Postgres para Dart](https://pub.dev/packages/postgres).
+- [BCrypt para Dart](https://pub.dev/packages/bcrypt).
 
 ---
 
