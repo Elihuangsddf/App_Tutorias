@@ -21,6 +21,8 @@ class MockSolicitudesRepository implements SolicitudesRepository {
       id: 'sol-${DateTime.now().millisecondsSinceEpoch}',
       idAlumno: solicitud.idAlumno,
       idTutor: solicitud.idTutor,
+      nombreAlumno: solicitud.nombreAlumno,
+      nombreTutor: solicitud.nombreTutor,
       materia: solicitud.materia,
       horario: solicitud.horario,
       mensaje: solicitud.mensaje,

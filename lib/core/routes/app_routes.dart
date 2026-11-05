@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../../features/auth/login_screen.dart';
 import '../../features/auth/seleccion_rol_screen.dart';
 import '../../features/auth/splash_screen.dart';
 import '../../features/solicitudes/panel_solicitudes_screen.dart';
 import '../../features/solicitudes/solicitud_form_screen.dart';
 import '../../features/tutores/catalogo_tutores_screen.dart';
 import '../../features/tutores/detalle_tutor_screen.dart';
+import '../../models/rol.dart';
 
 /// Nombres de todas las rutas de la aplicación.
 class AppRoutes {
@@ -13,6 +15,7 @@ class AppRoutes {
 
   static const String splash = '/';
   static const String seleccionRol = '/seleccion-rol';
+  static const String login = '/login';
   static const String catalogo = '/catalogo';
   static const String detalleTutor = '/detalle-tutor';
   static const String solicitud = '/solicitud';
@@ -20,8 +23,8 @@ class AppRoutes {
 
   /// Tabla de navegación.
   ///
-  /// El detalle del tutor y el formulario reciben el `id` del tutor como
-  /// argumento, nunca el objeto completo.
+  /// El login recibe un [Rol]; el detalle del tutor y el formulario reciben el
+  /// `id` del tutor como argumento, nunca el objeto completo.
   static Route<dynamic> generarRuta(RouteSettings settings) {
     switch (settings.name) {
       case splash:
@@ -32,6 +35,15 @@ class AppRoutes {
       case seleccionRol:
         return MaterialPageRoute(
           builder: (_) => const SeleccionRolScreen(),
+          settings: settings,
+        );
+      case login:
+        final rol = settings.arguments;
+        if (rol is! Rol) {
+          return _rutaInvalida(settings, 'Falta el rol para iniciar sesión.');
+        }
+        return MaterialPageRoute(
+          builder: (_) => LoginScreen(rol: rol),
           settings: settings,
         );
       case catalogo:

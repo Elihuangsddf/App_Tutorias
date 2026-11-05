@@ -25,8 +25,8 @@ const List<Tutor> tutoresDemo = [
     calificacion: 4.9,
     horariosDisponibles: ['Lunes 08:00 - 10:00', 'Miércoles 14:00 - 16:00'],
     descripcion:
-        'Ingeniera en Sistemas con dos años de experiencia dando asesorías '
-        'de cálculo, álgebra y física a estudiantes de primer semestre.',
+        'Estudiante con interés en explicar conceptos y acompañar el '
+        'aprendizaje de sus compañeros.',
     foto: 'assets/images/tutor_1.png',
   ),
   Tutor(
@@ -91,6 +91,8 @@ final List<Solicitud> solicitudesDemo = [
     id: 'sol-1',
     idAlumno: 'alumno-1',
     idTutor: 'tutor-1',
+    nombreAlumno: 'Ana López',
+    nombreTutor: 'Ana Martínez',
     materia: 'Matemáticas',
     horario: 'Lunes 08:00 - 10:00',
     mensaje: 'Necesito repasar derivadas antes del examen parcial.',
@@ -101,6 +103,8 @@ final List<Solicitud> solicitudesDemo = [
     id: 'sol-2',
     idAlumno: 'alumno-1',
     idTutor: 'tutor-3',
+    nombreAlumno: 'Ana López',
+    nombreTutor: 'Sofía Ramírez',
     materia: 'Química',
     horario: 'Martes 10:00 - 12:00',
     mensaje: 'Tengo dudas con los ejercicios de estequiometría.',
@@ -111,6 +115,8 @@ final List<Solicitud> solicitudesDemo = [
     id: 'sol-3',
     idAlumno: 'alumno-2',
     idTutor: 'tutor-1',
+    nombreAlumno: 'Pedro Sánchez',
+    nombreTutor: 'Ana Martínez',
     materia: 'Física',
     horario: 'Miércoles 14:00 - 16:00',
     mensaje: 'Quiero prepararme para el examen de cinemática.',
