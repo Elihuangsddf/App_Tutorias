@@ -68,3 +68,7 @@ app.*.map.json
 **/*.keystore
 **/*.jks
 **/key.properties
+
+# Entornos de pruebas locales de Python
+**/.venv/
+**/__pycache__/

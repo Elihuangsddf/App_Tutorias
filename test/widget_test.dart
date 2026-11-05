@@ -1,38 +1,36 @@
 import 'package:app_tutorias/main.dart';
-import 'package:app_tutorias/repositories/mock/mock_auth_repository.dart';
-import 'package:app_tutorias/repositories/mock/mock_solicitudes_repository.dart';
-import 'package:app_tutorias/repositories/mock/mock_tutores_repository.dart';
+import 'package:app_tutorias/repositories/repositorioAutenticacion.dart';
+import 'package:app_tutorias/repositories/repositorioSolicitudes.dart';
+import 'package:app_tutorias/repositories/repositorioTutores.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/material.dart';
 
-AppTutorias _app() {
+AppTutorias _crearAplicacion() {
   return AppTutorias(
-    authRepository: MockAuthRepository(),
-    tutoresRepository: MockTutoresRepository(),
-    solicitudesRepository: MockSolicitudesRepository(),
+    repositorioAutenticacion: MockAuthRepository(),
+    repositorioTutores: MockTutoresRepository(),
+    repositorioSolicitudes: MockSolicitudesRepository(),
   );
 }
 
 void main() {
-  testWidgets('flujo alumno: splash, rol, login y catálogo', (tester) async {
-    await tester.pumpWidget(_app());
+  testWidgets('flujo alumno: credenciales y catálogo', (probador) async {
+    await probador.pumpWidget(_crearAplicacion());
 
     expect(find.text('TutoPar'), findsOneWidget);
 
-    await tester.pump(const Duration(milliseconds: 1600));
-    await tester.pumpAndSettle();
-
-    expect(find.text('¿Cómo quieres entrar?'), findsOneWidget);
-    expect(find.text('Alumno'), findsOneWidget);
-    expect(find.text('Tutor'), findsOneWidget);
-
-    await tester.tap(find.text('Alumno'));
-    await tester.pumpAndSettle();
+    await probador.pump(const Duration(milliseconds: 1600));
+    await probador.pumpAndSettle();
 
     expect(find.text('Bienvenido de nuevo'), findsOneWidget);
-    expect(find.text('Acceso como Alumno'), findsOneWidget);
+    await probador.enterText(
+      find.byType(TextField).at(0),
+      'ana.alumno@tutopar.local',
+    );
+    await probador.enterText(find.byType(TextField).at(1), 'Tutorias123!');
 
-    await tester.tap(find.text('Iniciar sesión'));
-    await tester.pumpAndSettle();
+    await probador.tap(find.text('Iniciar sesión'));
+    await probador.pumpAndSettle();
 
     expect(find.text('Tutores'), findsNWidgets(2));
     expect(find.text('6 tutores disponibles'), findsOneWidget);
@@ -41,19 +39,20 @@ void main() {
   });
 
   testWidgets('flujo tutor: login y panel de solicitudes recibidas', (
-    tester,
+    probador,
   ) async {
-    await tester.pumpWidget(_app());
-    await tester.pump(const Duration(milliseconds: 1600));
-    await tester.pumpAndSettle();
+    await probador.pumpWidget(_crearAplicacion());
+    await probador.pump(const Duration(milliseconds: 1600));
+    await probador.pumpAndSettle();
 
-    await tester.tap(find.text('Tutor'));
-    await tester.pumpAndSettle();
+    await probador.enterText(
+      find.byType(TextField).at(0),
+      'ana.tutor@tutopar.local',
+    );
+    await probador.enterText(find.byType(TextField).at(1), 'Tutorias123!');
 
-    expect(find.text('Acceso como Tutor'), findsOneWidget);
-
-    await tester.tap(find.text('Iniciar sesión'));
-    await tester.pumpAndSettle();
+    await probador.tap(find.text('Iniciar sesión'));
+    await probador.pumpAndSettle();
 
     expect(find.text('Solicitudes recibidas'), findsOneWidget);
     expect(find.text('Hola, Ana'), findsOneWidget);

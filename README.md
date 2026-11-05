@@ -10,7 +10,8 @@ pares dentro de la misma comunidad estudiantil.
 
 > **Etapa 1 — MVP local.** Sin backend, sin Firebase y sin persistencia: los datos viven en
 > memoria mientras la app está abierta. La arquitectura ya está preparada para conectar
-> Firebase en la Etapa 2 cambiando una sola línea en `main.dart`.
+> Firebase en la Etapa 2 mediante nuevas implementaciones del Repository.
+> La conexión directa experimental con PostgreSQL se conserva aparte y no se utiliza al iniciar el MVP.
 
 ---
 
@@ -32,22 +33,41 @@ pares dentro de la misma comunidad estudiantil.
 
 ---
 
+## Documento de definición y validación del equipo
+
+[App Tutoría: documento externo del equipo](https://docs.google.com/document/d/1wgrwFpcxMS3E_8LmBLUwJRN8LDnaPhpGpQ6fEEzfg6w/edit?usp=sharing).
+
+El documento incluye los requisitos MoSCoW, el público objetivo, cinco entrevistas,
+transcripciones, gráficos y hallazgos. Las secciones 3.1, 3.3 y 15 todavía contienen pendientes
+sobre cifras y fuentes. El apartado 9.2 debe distinguir al entrevistador del participante.
+Estos pendientes corresponden al equipo; no se completaron con datos inventados.
+
+La matriz siguiente resume prioridades ya declaradas en la sección 6 del documento del equipo:
+
+| Prioridad | Alcance |
+|---|---|
+| Must | Entrada, catálogo, búsqueda, detalle con argumentos, solicitud validada y panel por rol. |
+| Should | Filtros adicionales, estados de carga/vacío/error y cierre de sesión. |
+| Could / Etapa 2 | Aprobación de tutores, notificaciones, intercambio y otras ampliaciones. |
+
 ## Alcance de la Etapa 1
 
 | Dentro del MVP | Fuera del MVP (Etapa 2) |
 |---|---|
-| Dos roles: **Alumno** y **Tutor** | Rol **Admin** con aprobación de perfiles |
-| Seis pantallas con navegación por rutas nombradas | Notificaciones push |
-| Datos de ejemplo en memoria (repositorios mock) | Firebase Auth + Firestore |
+| Tres roles: **Alumno**, **Tutor** y **Administrador** | Gestión administrativa de cuentas y perfiles |
+| Siete pantallas con navegación por rutas nombradas | Notificaciones push |
+| Datos de ejemplo en memoria (repositorios mock) | Firebase Auth y Firestore |
 | Búsqueda y filtros en el catálogo de tutores | Chat o videollamada |
 | Solicitudes con validaciones y cambio de estado | Persistencia entre sesiones |
 
-**Flujo principal:** Splash → Selección de rol → Catálogo → Detalle del tutor → Formulario de
+**Flujo principal:** Bienvenida → Inicio de sesión o registro → Acceso según la cuenta → Catálogo → Detalle del tutor → Formulario de
 solicitud → Panel de solicitudes.
 
 - **Alumno:** explora tutores, filtra por materia/calificación/horario, envía solicitudes y
   consulta el estado de las suyas.
-- **Tutor:** consulta las solicitudes que recibió y las acepta o rechaza.
+- **Tutor:** incluye al docente; consulta y responde únicamente sus solicitudes.
+- **Administrador:** accede a un panel inicial propio con los datos de su sesión. La gestión de usuarios aún no está implementada.
+- El registro público solo permite **Alumno** o **Tutor**. El administrador se crea por separado.
 
 ---
 
@@ -58,7 +78,7 @@ Los datos viajan en **una sola dirección** y cada capa tiene una única respons
 ```
 Pantalla  →  Provider  →  Repository (contrato)  →  Implementación
                                                      ├── Mock (Etapa 1)
-                                                     └── Firebase (Etapa 2)
+                                                     └── Firebase Auth / Firestore (Etapa 2)
 ```
 
 ### Reglas
@@ -70,45 +90,49 @@ Pantalla  →  Provider  →  Repository (contrato)  →  Implementación
    abstracta; la implementación concreta les es indiferente.
 3. **Un solo lugar decide qué implementación se usa: `main.dart`.** Ahí se registran los
    Providers con `MultiProvider` y se inyectan los repositorios mock. En la Etapa 2 solo cambia
-   esa línea.
+   la selección de las implementaciones.
 
 ### Por qué esta arquitectura
 
 - Cumple el mínimo técnico del curso (Provider, Model, Repository, rutas con argumentos).
 - Permite que las tres personas trabajen en paralelo sobre contratos ya acordados.
-- Hace que la migración a Firebase no toque pantallas, Providers ni rutas.
+- Permite sustituir los repositorios locales por implementaciones Firebase sin trasladar consultas a las pantallas.
 - Facilita las pruebas: los repositorios mock son intercambiables y deterministas.
 
 ---
 
 ## Estructura del proyecto
 
-```
+La estructura separa componentes, pantallas, modelos, estado y acceso a datos. Los nombres de
+archivos y variables se conservan en español y camelCase para facilitar su lectura.
+
+```text
 lib/
-├── main.dart                  # arranque: repositorios + MultiProvider + rutas
+├── main.dart                   # Arranque del MVP local
 ├── core/
-│   ├── theme/                 # colores, tipografía, formas, estilos de botones y campos
-│   ├── widgets/               # componentes reutilizables (mínimo 2)
-│   ├── routes/                # nombres de rutas y tabla de navegación
-│   └── utils/                 # validadores de formularios y constantes
-├── models/                    # Usuario, Tutor, Solicitud (con toMap/fromMap)
-├── repositories/
-│   ├── auth_repository.dart
-│   ├── tutores_repository.dart
-│   ├── solicitudes_repository.dart
-│   └── mock/                  # implementaciones con datos locales
-├── providers/                 # SesionProvider, TutoresProvider, SolicitudesProvider
-└── features/
-    ├── auth/                  # Splash y selección de rol
-    ├── tutores/               # catálogo y detalle
-    └── solicitudes/           # formulario y panel
-assets/
-├── images/                    # logo, íconos y fotos de ejemplo
-└── data/                      # JSON de datos de ejemplo (opcional)
+│   ├── routes/                 # Navegación y permisos por rol
+│   ├── theme/                  # Tema, colores y tipografía
+│   ├── utils/                  # Formato, avisos y constantes
+│   └── widgets/                # Botones, campos, tarjetas y logotipo
+├── features/
+│   ├── auth/                   # Bienvenida, inicio de sesión y registro
+│   ├── tutores/                # Catálogo y detalle del tutor
+│   ├── solicitudes/            # Formulario y panel de solicitudes
+│   └── admin/                  # Panel informativo adicional
+├── models/                     # Usuario, Tutor, Solicitud y sus valores
+├── providers/                  # Sesión, catálogo y solicitudes
+└── repositories/
+    ├── datosEjemplo.dart       # Listas locales del MVP
+    ├── repositorioAutenticacion.dart
+    ├── repositorioTutores.dart
+    ├── repositorioSolicitudes.dart
+    └── postgres/              # Experimento opcional, fuera del arranque local
 ```
 
-Cada carpeta de `features/` contiene solo pantallas y widgets propios de esa función; la lógica
-vive en `providers/` y los datos en `repositories/`.
+El contrato y su implementación simulada comparten archivo. Los Providers reciben los
+repositorios por constructor. `main.dart` selecciona `MockAuthRepository`,
+`MockTutoresRepository` y `MockSolicitudesRepository`; no se necesitan variables de entorno,
+PostgreSQL ni conexión a internet para probar los flujos después de instalar la aplicación.
 
 ---
 
@@ -117,11 +141,11 @@ vive en `providers/` y los datos en `repositories/`.
 ### Modelos
 
 Todos incluyen `toMap()` y `fromMap()` desde la Etapa 1, y todos los identificadores son
-`String`, para que el paso a Firestore sea directo.
+`String`, para intercambiarlos con la futura implementación de Firebase.
 
 | Modelo | Campos |
 |---|---|
-| `Usuario` | `id`, `nombre`, `rol` (`alumno` \| `tutor`) |
+| `Usuario` | `id`, `nombre`, `correo`, `rol` (`alumno` \| `tutor` \| `administrador`) |
 | `Tutor` | `id`, `nombre`, `materias`, `calificacion`, `horariosDisponibles`, `descripcion`, `foto` |
 | `Solicitud` | `id`, `idAlumno`, `idTutor`, `materia`, `horario`, `mensaje`, `estado` (`pendiente` \| `aceptada` \| `rechazada`), `fecha` |
 
@@ -131,22 +155,23 @@ Todos incluyen `toMap()` y `fromMap()` desde la Etapa 1, y todos los identificad
 ### Repositorios (contratos abstractos)
 
 Métodos **asíncronos** desde el inicio, aunque los datos sean locales. Así la firma no cambia
-cuando llegue Firebase.
+cuando se conecte Firebase.
 
 | Contrato | Métodos |
 |---|---|
-| `AuthRepository` | `iniciarSesionPorRol(rol)`, `cerrarSesion()` |
+| `AuthRepository` | `iniciarSesion(correo, contrasena)`, `registrar(nombre, correo, contrasena, rol)`, `cerrarSesion()` |
 | `TutoresRepository` | `obtenerTutores()`, `obtenerTutorPorId(id)` |
 | `SolicitudesRepository` | `crear(solicitud)`, `listarPorAlumno(idAlumno)`, `listarPorTutor(idTutor)`, `cambiarEstado(id, estado)` |
 
-El login es simulado: elige un usuario de ejemplo según el rol (un alumno y un tutor que existe
-en el catálogo).
+El acceso comprueba correo y contraseña contra cuentas en memoria. El rol procede de la cuenta
+validada. El registro permite crear alumnos y tutores; se inicia sesión al completar el registro.
+Los datos del usuario nunca incluyen la contraseña en `toMap()`.
 
 ### Providers
 
 | Provider | Responsabilidad |
 |---|---|
-| `SesionProvider` | Usuario actual y rol; inicio y cierre de sesión |
+| `SesionProvider` | Usuario actual y rol; registro, inicio y cierre de sesión |
 | `TutoresProvider` | Lista de tutores, texto de búsqueda, filtros, resultados filtrados, estados de carga y error |
 | `SolicitudesProvider` | Solicitudes según el rol, creación, aceptación y rechazo |
 
@@ -162,40 +187,66 @@ Provider.
 
 | # | Pantalla | Rol | Descripción |
 |---|---|---|---|
-| 1 | Splash | Ambos | Pantalla de bienvenida; verifica la sesión y navega a la selección de rol |
-| 2 | Selección de rol | Ambos | Login simulado: el usuario elige entrar como alumno o como tutor |
-| 3 | Catálogo de tutores | Alumno | Listado con búsqueda por materia, filtros y estados vacío / sin resultados / error |
-| 4 | Detalle del tutor | Alumno | Perfil completo, materias, horarios, calificación y acceso al formulario |
-| 5 | Formulario de solicitud | Alumno | Materia, horario y mensaje, con validaciones |
-| 6 | Panel de solicitudes | Ambos | El alumno ve las suyas; el tutor acepta o rechaza las recibidas |
+| 1 | Bienvenida | Todos | Muestra la marca y abre el inicio de sesión. |
+| 2 | Inicio de sesión y registro | Todos | Valida credenciales; al registrarse solo se puede elegir alumno o tutor. |
+| 3 | Catálogo de tutores | Alumno | Lista tutores con búsqueda y filtros. |
+| 4 | Detalle del tutor | Alumno | Muestra el perfil y abre el formulario. |
+| 5 | Nueva solicitud | Alumno | Valida materia, horario y mensaje. |
+| 6 | Solicitudes | Alumno y Tutor | Cada usuario consulta sus solicitudes; el tutor responde las que recibió. |
+| 7 | Administración | Administrador | Panel inicial con información de la sesión, sin gestión de usuarios todavía. |
 
 ---
 
 ## Requisitos técnicos y cómo se cubren
 
-La arquitectura y los contratos ya están listos; la implementación de cada pantalla está
-pendiente y se hará según los checklists por rol.
+Las siete pantallas están implementadas y funcionan con datos de ejemplo en memoria.
 
 | Requisito | Cómo se cumple |
 |---|---|
-| Entrada y mínimo 4 pantallas | Splash, selección de rol, catálogo, detalle, formulario y panel (6) |
+| Entrada y mínimo 4 pantallas | Bienvenida, acceso/registro, catálogo, detalle, formulario, solicitudes y administración (7) |
 | Listado con búsqueda o filtros | Catálogo con `TutoresProvider` |
 | Detalle que recibe argumentos | Detalle del tutor con el `id` como argumento |
 | Estado compartido con Provider | `SesionProvider`, `TutoresProvider` y `SolicitudesProvider` |
-| Tema global y 2 componentes reutilizables | `core/theme` y `core/widgets` |
-| Assets propios en `pubspec.yaml` | `assets/images` (logo y fotos de tutores) |
-| Model y Repository | `models/` y `repositories/` |
+| Tema global y 2 componentes reutilizables | `temaAplicacion.dart` y componentes en `lib/` |
+| Assets propios en `pubspec.yaml` | `assets/images/logoTutopar.png`, usado en la bienvenida; fuentes locales Poppins e Inter |
+| Model y Repository | Modelos y archivos `repositorio*.dart` en `lib/` |
 | Validaciones en formularios | Formulario de solicitud (campos obligatorios, longitud del mensaje, horario elegido) |
 
 ---
+
+## Capturas de la aplicación actual
+
+Capturas renderizadas desde los widgets reales del MVP, con viewport de 390 × 844.
+Los bocetos anteriores se conservan en `docs/Diseño/`.
+
+<p>
+  <img src="docs/capturas/01-inicioSesion.png" width="230" alt="Inicio de sesión local">
+  <img src="docs/capturas/02-catalogo.png" width="230" alt="Catálogo con filtros">
+  <img src="docs/capturas/04-validacionSolicitud.png" width="230" alt="Validación del formulario de solicitud">
+</p>
+
+Las demás capturas están en [docs/capturas](docs/capturas/).
+
+## Cuentas locales de prueba
+
+Todas usan la contraseña de demostración **`Tutorias123!`**.
+
+| Correo | Rol | Pantalla inicial |
+|---|---|---|
+| `ana.alumno@tutopar.local` | Alumno | Catálogo de tutores |
+| `pedro.alumno@tutopar.local` | Alumno | Catálogo y solicitudes de Pedro |
+| `ana.tutor@tutopar.local` | Tutor | Solicitudes recibidas |
+| `admin@tutopar.local` | Administrador | Panel de administración |
+
+Las cuentas nuevas se conservan al cerrar sesión, pero se pierden al cerrar o reiniciar la
+aplicación. La versión de entrega utiliza datos ficticios en memoria. La implementación
+PostgreSQL del repositorio es un experimento de escritorio separado y no se ejecuta en el MVP.
 
 ## Cómo ejecutar el proyecto
 
 ### Requisitos
 
-- Flutter **3.47.2** o superior (Dart **3.13.2**). El `pubspec.yaml` declara `sdk: ^3.12.1`
-  porque el código usa *dot shorthands* (`.fromSeed(...)`, `.center`); una versión anterior no
-  lo compila.
+- Una instalación de Flutter compatible con el requisito de Dart `sdk: ^3.12.1` declarado en `pubspec.yaml`.
 - Android SDK para generar el APK.
 - En Windows se puede compilar `android`, `web` y `windows`; `ios`, `macos` y `linux` no son
   compilables en este entorno.
@@ -218,52 +269,59 @@ flutter run -d edge
 flutter build apk --debug
 ```
 
-> No hay Chrome instalado en el equipo del proyecto; para web se usa **Edge** (`-d edge`).
+> Las dependencias se descargan al preparar el proyecto. El APK local no necesita red ni una base de datos externa.
+> La firma del APK debug es de desarrollo; no corresponde a una publicación en una tienda.
 
 ---
 
 ## Estado del proyecto
 
-**Actualizado:** 4 de noviembre de 2026.
+**Actualizado:** 5 de noviembre de 2026.
 
-`main` tiene la **base técnica** de la arquitectura: modelos, contratos, repositorios mock,
-providers, rutas y arranque con `MultiProvider`. Las pantallas son **placeholders a propósito**:
-el diseño en Figma y la implementación de cada función están pendientes y corresponden a los
-checklists por rol.
+La aplicación cuenta con siete pantallas funcionales, estado compartido con Provider,
+rutas con control de acceso por rol y repositorios con datos en memoria. `lib/` se organiza en
+`core`, `features`, `models`, `providers` y `repositories`, con nombres en español y camelCase.
+
+Los contratos y sus implementaciones simuladas comparten archivo. Cada modelo agrupa sus
+valores relacionados (rol o estado). Los colores están en el tema, el cierre de sesión en
+su botón y la etiqueta de estado junto a la tarjeta de solicitud.
+
+Cada línea de código de `lib/` lleva un comentario en español para facilitar su lectura.
+El formulario utiliza una sola función para validar el mensaje al escribir y al enviar.
 
 | Elemento | Estado |
 |---|---|
-| Estructura de carpetas y contratos | ✅ Listo |
-| Modelos con `toMap`/`fromMap` | ✅ Listo |
-| Repositorios mock | ✅ Listo |
-| Providers y `MultiProvider` | ✅ Listo |
-| Rutas nombradas con argumentos | ✅ Listo |
-| Tema global | 🟡 Tema base solo para compilar (Rol 1) |
-| Componentes reutilizables | ⏳ Pendiente (Rol 1) |
-| Assets y declaración en `pubspec.yaml` | ⏳ Pendiente (Rol 1) |
-| Splash y selección de rol | 🟡 Funcionales, sin diseño final (Rol 1) |
-| Catálogo y detalle del tutor | ⏳ Placeholder (Rol 3) |
-| Formulario y panel de solicitudes | ⏳ Placeholder (Rol 2) |
-| Test de la app (reemplaza el del contador) | 🟡 1 prueba de arranque |
-| `AI_LOG.md` y guion de demo | ⏳ Pendiente |
+| Separación por carpetas y nombres camelCase | Implementado. |
+| Modelos, contratos y repositorios simulados | Implementado. |
+| Providers y rutas con argumentos | Implementado. |
+| Tema y componentes reutilizables | Implementado. |
+| Siete pantallas y validación de solicitudes | Implementado. |
+| Pruebas automatizadas | 21 aprobadas: credenciales, registro, permisos, filtros, arranque real local y flujos visuales. |
+| Análisis del código | Sin errores ni advertencias en `lib` y `test` (5 de noviembre de 2026). |
+| APK de entrega | Compilado en `build/app/outputs/flutter-apk/app-debug.apk`; la instalación y demo en dispositivo deben confirmarse. |
+| Autenticación real y persistencia | Pendientes para la Etapa 2. |
+
 
 ---
 
 ## Etapa 2 (backlog)
 
-Lo que cambia: se agrega una implementación de cada repositorio con Firebase y se ajusta la línea
-de `main.dart` que elige la implementación, junto con las dependencias de Firebase Auth y
-Firestore. Lo que **no** cambia: pantallas, Providers y rutas.
+La Etapa 2 de la rúbrica utiliza **Firebase Auth y Firestore**. Los contratos de los repositorios
+permiten agregar las implementaciones remotas y seleccionarlas en `main.dart`.
 
-Pendientes registrados:
+| Prioridad | Trabajo pendiente | Criterio de aceptación propuesto |
+|---|---|---|
+| Must | Implementación de `AuthRepository` con Firebase Auth | Registro, inicio y cierre de sesión sin contraseñas almacenadas por Flutter. |
+| Must | Tutores y solicitudes en Firestore | Los datos se conservan entre dispositivos y se consultan por usuario. |
+| Must | Reglas de acceso del servidor | Cada alumno consulta lo suyo y cada tutor responde sus propias solicitudes. |
+| Should | Perfiles de tutores y aprobación administrativa | Un tutor puede proponer su perfil y el administrador aprobarlo. |
+| Should | Notificación de cambios de solicitud | El alumno conoce si se aceptó o rechazó su solicitud. |
+| Could | Intercambio de asesorías y reconocimiento | El equipo delimita esta función a partir de las entrevistas, sin simular que ya existe. |
+| Could | Chat, videollamada y reportes | Requieren definición adicional y quedan fuera del MVP local. |
 
-- Conectar **Firebase Auth** (login real, no simulado).
-- Migrar los repositorios a **Firestore**.
-- Rol **Admin** con aprobación de perfiles.
-- **Notificaciones** cuando cambia el estado de una solicitud.
-- Permiso de **INTERNET** en el manifiesto de `release`.
-- Cambiar el `applicationId` de `com.example.app_tutorias`.
-- Ideas futuras: chat o videollamada dentro de la app.
+El experimento de conexión directa a PostgreSQL está en
+`lib/repositories/postgres/repositorioAutenticacionPostgres.dart`. Se conserva como trabajo
+adicional de escritorio; no se exige ni se activa para la entrega local.
 
 ---
 
@@ -274,9 +332,9 @@ principal de una función completa (pantalla, lógica y datos).
 
 | Rol | Responsabilidad principal | Función de código |
 |---|---|---|
-| **Rol 1 — Diseño UI/UX (Eri)** | Wireframes, sistema de diseño, tema global, 2 componentes reutilizables, consistencia visual en los PR | Entrada y sesión: Splash, selección de rol, `SesionProvider` y `AuthRepository` mock |
-| **Rol 2 — Arquitectura y Git** | Estructura, contratos, rutas, `MultiProvider`, revisión de PR, APK, README técnico | Solicitudes: formulario con validaciones y panel por rol |
-| **Rol 3 — Coordinación y documentación** | Documento de definición, validación con usuarios, README, `AI_LOG.md`, guion de demo | Tutores: catálogo con búsqueda/filtros y detalle con argumentos |
+| **Rol 1 — Diseño UI/UX (Erick)** | Wireframes, sistema de diseño, tema global, 2 componentes reutilizables, consistencia visual en los PR | Entrada y sesión: bienvenida, registro, inicio de sesión, `SesionProvider` y `AuthRepository` mock |
+| **Rol 2 — Arquitectura y Git (Elihu)** | Estructura, contratos, rutas, `MultiProvider`, revisión de PR, APK, README técnico | Solicitudes: formulario con validaciones y panel por rol |
+| **Rol 3 — Coordinación y documentación (Heidi)** | Documento de definición, validación con usuarios, README, `AI_LOG.md`, guion de demo | Tutores: catálogo con búsqueda/filtros y detalle con argumentos |
 
 **Orden de dependencias:** Rol 2 publica modelos y contratos antes de que los demás empiecen sus
 pantallas. Rol 1 entrega tema y componentes antes de que se construyan las pantallas.
@@ -291,32 +349,41 @@ pantallas. Rol 1 entrega tema y componentes antes de que se construyan las panta
 - Cada pull request debe ser revisado por al menos otra persona antes de unirse a `main`.
 - Mensajes de commit descriptivos: qué se hizo y por qué.
 - Hacer `pull` antes de empezar a trabajar.
-- Avisar antes de tocar archivos compartidos: `pubspec.yaml`, `main.dart` y `core/routes`.
+- Avisar antes de tocar archivos compartidos: `pubspec.yaml`, `main.dart` y `rutasAplicacion.dart`.
 - Antes de abrir un PR: `flutter analyze` sin issues y `flutter test` en verde.
 
 ---
 
-## Decisiones abiertas
+## Decisiones y coherencia documental
 
-| Tema | Estado |
+| Tema | Estado comprobable en el código |
 |---|---|
-| Nombre definitivo de la app, logo y paleta | Provisional: "App Tutorías"; diseño pendiente (Rol 1) |
-| Confirmar que el rol Admin queda fuera del MVP | Propuesto: fuera |
-| Paquete de estado | Decidido: `provider` (`MultiProvider`) |
-| Rutas nombradas (propuesta) o un paquete como `go_router` | Decidido: rutas nombradas (`core/routes`) |
-| Datos de ejemplo: lista fija en código o JSON en `assets/data` | Decidido: lista fija en `repositories/mock/mock_data.dart` |
-| Filtros del catálogo además de la búsqueda por materia | Pendiente de definir (Rol 3) |
+| Nombre visible de esta compilación | TutoPar. El documento del equipo dice MetroTutor; el equipo debe unificar la decisión. |
+| Navegación | Rutas nombradas de Flutter con argumentos. El documento menciona `go_router`; la rúbrica no obliga a ese paquete. |
+| Datos locales | Listas Dart en `lib/repositories/datosEjemplo.dart`. El documento menciona JSON; el equipo debe reflejar la opción realmente utilizada. |
+| Administración | Panel informativo adicional; no existe aprobación ni gestión de usuarios. |
+| Filtros | Materia, calificación y día en el controlador; búsqueda por nombre o materia. |
+| Persistencia remota | Fuera del MVP; Firebase corresponde al backlog de la Etapa 2. |
 
 ---
 
 ## Uso de inteligencia artificial
 
-El equipo registra cada uso de IA en un archivo `AI_LOG.md` (aún por crear) con **fecha, qué se
-preguntó y qué se adaptó**. Reglas acordadas:
+La bitácora [AI_LOG.md](AI_LOG.md) registra de forma retrospectiva la ayuda observable en esta
+conversación, incluida la generación de código completo y de partes del README. Esos usos
+superan los límites de la sección 7 de la rúbrica y deben revisarse con el docente. El registro
+no convierte automáticamente esos usos en permitidos ni acredita la defensa individual.
 
-- No se pega código que no se entienda.
-- La IA no genera pantallas, módulos o funciones completas.
-- Cualquier código tomado de tutoriales, foros o repositorios se cita aquí y en los commits.
+La revisión técnica de archivos, rutas y verificaciones del 5 de noviembre de 2026 también
+se realizó con asistencia de IA. El equipo debe revisar la documentación final y explicar su
+código. No se generaron ni se alteraron entrevistas o resultados de investigación en este ajuste.
+
+Fuentes técnicas consultadas durante el trabajo:
+
+- [Flutter: documentación](https://docs.flutter.dev/).
+- [Provider: documentación del paquete](https://pub.dev/packages/provider).
+- [Postgres para Dart: documentación del experimento opcional](https://pub.dev/packages/postgres).
+- [BCrypt para Dart: documentación del experimento opcional](https://pub.dev/packages/bcrypt).
 
 ---
 

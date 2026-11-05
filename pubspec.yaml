@@ -37,6 +37,8 @@ dependencies:
 
   # Estado compartido con ChangeNotifier / MultiProvider.
   provider: ^6.1.2
+  postgres: ^3.6.0
+  bcrypt: ^1.2.0
 
 dev_dependencies:
   flutter_test:
@@ -59,6 +61,11 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Logotipo propio renderizado a partir del símbolo existente.
+  assets:
+    - assets/images/logoTutopar.png
+
 
   # Fuentes oficiales del sistema de diseño: Poppins para títulos y botones,
   # Inter para lectura y metadatos.
