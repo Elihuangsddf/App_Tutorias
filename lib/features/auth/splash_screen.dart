@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/routes/app_routes.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_theme.dart';
 import '../../core/utils/constants.dart';
+import '../../core/widgets/tutopar_logo.dart';
 
 /// Pantalla de bienvenida.
 ///
-/// Solo simula una verificación de sesión y navega a la selección de rol.
-///
-/// TODO(rol-1): aplicar el diseño de Figma y los assets definitivos.
+/// Mantiene la marca durante 1.5 s y navega a la selección de rol.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -30,22 +32,74 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.school_outlined, size: 72),
-            const SizedBox(height: 16),
-            Text(
-              AppConstants.nombreApp,
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 8),
-            const Text(AppConstants.descripcionApp),
-            const SizedBox(height: 32),
-            const CircularProgressIndicator(),
-          ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: AppColors.morado,
+        body: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 56),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const TutoParMark(
+                          size: 112,
+                          backgroundColor: AppColors.superficie,
+                          leftColor: AppColors.morado,
+                          rightColor: AppColors.ambar,
+                        ),
+                        const SizedBox(height: 34),
+                        Text(
+                          AppConstants.nombreApp,
+                          style: AppTextStyles.marca.copyWith(
+                            fontSize: 38,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          AppConstants.descripcionApp,
+                          style: const TextStyle(
+                            fontFamily: AppTextStyles.inter,
+                            fontSize: 16,
+                            color: Color(0xD9FFFFFF),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 56),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xB3FFFFFF),
+                      ),
+                    ),
+                    SizedBox(height: 14),
+                    Text(
+                      'Etapa 1 · MVP local',
+                      style: TextStyle(
+                        fontFamily: AppTextStyles.inter,
+                        fontSize: 13,
+                        color: Color(0x99FFFFFF),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

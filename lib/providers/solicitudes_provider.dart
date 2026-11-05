@@ -76,6 +76,7 @@ class SolicitudesProvider extends ChangeNotifier {
   /// Crea una solicitud a nombre del alumno de la sesión.
   Future<bool> crearSolicitud({
     required String idTutor,
+    required String nombreTutor,
     required String materia,
     required String horario,
     required String mensaje,
@@ -97,6 +98,8 @@ class SolicitudesProvider extends ChangeNotifier {
           id: '',
           idAlumno: usuario.id,
           idTutor: idTutor,
+          nombreAlumno: usuario.nombre,
+          nombreTutor: nombreTutor,
           materia: materia,
           horario: horario,
           mensaje: mensaje,
