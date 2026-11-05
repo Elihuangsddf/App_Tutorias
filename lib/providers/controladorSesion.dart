@@ -1,5 +1,9 @@
 // Importa package:flutter/foundation.dart para utilizar sus componentes y clases.
 import 'package:flutter/foundation.dart';
+// Comparte las operaciones locales y los perfiles completos.
+import 'package:app_tutorias/repositories/gestionCuentas.dart';
+import 'package:app_tutorias/models/modeloTutor.dart';
+
 // Importa modeloUsuario.dart para utilizar sus componentes y clases.
 import 'package:app_tutorias/models/modeloUsuario.dart';
 // Importa repositorioAutenticacion.dart para utilizar sus componentes y clases.
@@ -12,6 +16,59 @@ class SesionProvider extends ChangeNotifier {
 
   // Guarda el repositorio de autenticación o solicitudes.
   final AuthRepository _repositorio;
+  // Consulta el perfil actual para precargar el formulario de edición.
+  Tutor? perfilTutor(String id) => _repositorio is GestionCuentas
+      ? (_repositorio as GestionCuentas).perfilesTutores
+            .where((perfil) => perfil.id == id)
+            .firstOrNull
+      : null;
+  // Comprueba el permiso tanto al crear como al editar o borrar.
+  GestionCuentas _gestionAdministrativa() {
+    if (rol != Rol.administrador || _repositorio is! GestionCuentas) {
+      throw const ErrorAutenticacion(
+        'Se requiere una sesión administrativa local.',
+      );
+    }
+    return _repositorio as GestionCuentas;
+  }
+
+  // Conserva el identificador durante una edición.
+  Future<void> guardarCuenta(
+    Usuario usuario,
+    String contrasena,
+    Tutor? perfil,
+  ) async {
+    // Entrega también los errores de permisos como resultado asíncrono.
+    await _gestionAdministrativa().guardarCuenta(usuario, contrasena, perfil);
+  }
+  // Impide que alumnos y tutores eliminen cuentas.
+  Future<void> borrarCuenta(String id) async {
+    // Comprueba el permiso antes de eliminar los datos relacionados.
+    await _gestionAdministrativa().borrarCuenta(id);
+  }
+
+  // Permite consultar las cuentas únicamente desde una sesión administrativa.
+  Future<List<Usuario>> obtenerUsuariosAdministracion() async {
+    // Comprueba el rol antes de consultar el repositorio de cuentas.
+    if (_usuario?.rol != Rol.administrador) {
+      // Impide acceder al directorio completo desde una sesión de alumno o tutor.
+      throw const ErrorAutenticacion(
+        'Solo el administrador puede consultar las cuentas.',
+      );
+    }
+    // Recuerda la sesión para descartar una lectura que termine después de salir.
+    final administrador = _usuario;
+    // Recupera únicamente los modelos públicos, sin contraseñas.
+    final usuarios = await _repositorio.obtenerUsuarios();
+    // Comprueba que sigue activa la misma sesión que autorizó la consulta.
+    if (!identical(_usuario, administrador)) {
+      // Evita entregar resultados administrativos a una sesión diferente.
+      throw const ErrorAutenticacion('La sesión administrativa ha cambiado.');
+    }
+    // Entrega una copia de solo lectura al panel administrativo.
+    return List<Usuario>.unmodifiable(usuarios);
+  }
+
   // Guarda el usuario de la sesión.
   Usuario? _usuario;
   // Prepara el indicador de operación en curso.
@@ -118,6 +175,9 @@ class SesionProvider extends ChangeNotifier {
     required String contrasena,
     // Recibe el rol guardado en la cuenta con tipo Rol.
     required Rol rol,
+    // Recibe materias y horarios del registro de tutor.
+    List<String> materias = const [],
+    List<String> horarios = const [],
     // Termina los parámetros y abre una función asíncrona.
   }) async {
     // Evita iniciar otra operación mientras la anterior sigue en curso.
@@ -136,6 +196,12 @@ class SesionProvider extends ChangeNotifier {
     notifyListeners();
     // Intenta ejecutar la operación y permite controlar sus errores.
     try {
+      // Valida antes del alta para evitar cuentas de tutor incompletas.
+      if (rol == Rol.tutor && (materias.isEmpty || horarios.isEmpty)) {
+        throw const ErrorAutenticacion(
+          'Indica al menos una materia y un horario.',
+        );
+      }
       // La cuenta que devuelve el repositorio determina el rol de la sesión.
       _usuario = await _repositorio.registrar(
         // Configura el nombre del usuario.
@@ -148,6 +214,20 @@ class SesionProvider extends ChangeNotifier {
         rol: rol,
         // Cierra los argumentos de la operación actual.
       );
+      // Publica el perfil académico completo con el mismo identificador de la cuenta.
+      if (rol == Rol.tutor && _repositorio is GestionCuentas) {
+        (_repositorio as GestionCuentas).guardarPerfil(
+          Tutor(
+            id: _usuario!.id,
+            nombre: _usuario!.nombre,
+            materias: materias,
+            calificacion: 0,
+            horariosDisponibles: horarios,
+            descripcion: 'Tutor disponible para apoyo académico.',
+            foto: '',
+          ),
+        );
+      }
       // Devuelve true para indicar el resultado de la operación.
       return true;
       // Captura un fallo de credenciales o registro y conserva su mensaje específico.

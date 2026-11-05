@@ -1,5 +1,10 @@
 // Importa ChangeNotifier para avisar a la interfaz cuando cambian los datos.
 import 'package:flutter/foundation.dart';
+import 'package:app_tutorias/repositories/gestionCuentas.dart';
+// Consulta las cuentas registradas para incorporar a los nuevos tutores.
+import 'package:app_tutorias/repositories/repositorioAutenticacion.dart';
+// Permite distinguir las cuentas de tutor de las de alumno o administrador.
+import 'package:app_tutorias/models/modeloUsuario.dart';
 
 // Importa modeloTutor.dart para utilizar sus clases y funciones.
 import 'package:app_tutorias/models/modeloTutor.dart';
@@ -11,7 +16,11 @@ import 'package:app_tutorias/repositories/repositorioTutores.dart';
 // Define la clase que reúne el catálogo de tutores y sus filtros.
 class TutoresProvider extends ChangeNotifier {
   // Define cómo se crea TutoresProvider y qué datos recibe.
-  TutoresProvider(this._repositorio);
+  // La dependencia opcional conserva el uso independiente del catálogo.
+  TutoresProvider(this._repositorio, {this.repositorioUsuarios});
+
+  // Comparte la misma fuente de cuentas que utiliza el inicio de sesión.
+  final AuthRepository? repositorioUsuarios;
 
   // Guarda el repositorio que se utilizará para consultar o modificar los datos.
   final TutoresRepository _repositorio;
@@ -227,8 +236,46 @@ class TutoresProvider extends ChangeNotifier {
 
     // Intenta realizar la operación y permite manejar sus errores.
     try {
-      // Actualiza _tutores con await _repositorio.obtenerTutores().
-      _tutores = await _repositorio.obtenerTutores();
+      // Conserva los perfiles completos existentes, indexados para evitar duplicados.
+      final perfiles = {
+        // Usa el identificador compartido por la cuenta y su perfil de tutor.
+        for (final tutor
+            in repositorioUsuarios is GestionCuentas
+                ? (repositorioUsuarios as GestionCuentas).perfilesTutores
+                : await _repositorio.obtenerTutores())
+          tutor.id: tutor,
+      };
+      // Recupera las cuentas actuales cuando la aplicación proporciona el directorio.
+      final usuarios =
+          await repositorioUsuarios?.obtenerUsuarios() ?? <Usuario>[];
+      // Revisa todas las cuentas para incorporar exclusivamente las de tutor.
+      for (final usuario in usuarios) {
+        // Evita publicar alumnos, administradores o reemplazar perfiles completos.
+        if (usuario.rol != Rol.tutor || perfiles.containsKey(usuario.id)) {
+          // Continúa con la siguiente cuenta sin modificar este perfil.
+          continue;
+        }
+        // Crea el perfil público con el mismo identificador que recibirá solicitudes.
+        perfiles[usuario.id] = Tutor(
+          // Relaciona el perfil con la cuenta recién registrada.
+          id: usuario.id,
+          // Publica el nombre escrito durante el registro.
+          nombre: usuario.nombre,
+          // El formulario actual no recoge materias; no inventa especialidades.
+          materias: const [],
+          // Una cuenta nueva todavía no tiene evaluaciones.
+          calificacion: 0,
+          // No ofrece horarios que el tutor no haya indicado.
+          horariosDisponibles: const [],
+          // Explica al alumno por qué el perfil todavía no recibe solicitudes.
+          descripcion:
+              'Tutor recién registrado. Materias y horarios pendientes de completar.',
+          // La interfaz utiliza las iniciales cuando no hay fotografía.
+          foto: '',
+        );
+      }
+      // Publica juntos los perfiles de ejemplo y los tutores registrados.
+      _tutores = perfiles.values.toList();
       // Captura un fallo de la operación para mostrar un error controlado.
     } catch (_) {
       // Actualiza _error con 'No se pudieron cargar los tutores. Intenta de nuevo.'.

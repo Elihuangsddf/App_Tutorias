@@ -22,7 +22,7 @@ Future<void> _irAlLogin(WidgetTester probador, {required String rol}) async {
     correo = 'ana.tutor@tutopar.local';
   }
   await probador.enterText(find.byType(TextField).at(0), correo);
-  await probador.enterText(find.byType(TextField).at(1), 'Tutorias123!');
+  await probador.enterText(find.byType(TextField).at(1), 'admin1234');
 }
 
 /// Frame de iPhone 13/14: el mismo de los diseños de Figma.

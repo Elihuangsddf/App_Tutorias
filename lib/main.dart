@@ -96,7 +96,13 @@ class AppTutorias extends StatelessWidget {
           // Define la función que crea el controlador compartido mediante una función.
           create: (_) {
             // Devuelve TutoresProvider(repositorioTutores) como resultado de esta función.
-            return TutoresProvider(repositorioTutores);
+            // Comparte las cuentas del registro con el catálogo de alumnos.
+            return TutoresProvider(
+              // Mantiene la fuente actual de perfiles y filtros.
+              repositorioTutores,
+              // Añade las cuentas nuevas sin cambiar los datos de ejemplo.
+              repositorioUsuarios: repositorioAutenticacion,
+            );
             // Cierra el bloque de instrucciones.
           },
           // Cierra la configuración de ChangeNotifierProvider.

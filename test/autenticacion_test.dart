@@ -31,14 +31,14 @@ void main() {
       final repositorio = MockAuthRepository();
       final usuario = await repositorio.iniciarSesion(
         '  ANA.TUTOR@TUTOPAR.LOCAL ',
-        'Tutorias123!',
+        'admin1234',
       );
       expect(usuario.id, 'tutor-1');
       expect(usuario.rol, Rol.tutor);
       expect(usuario.toMap().containsKey('contrasena'), isFalse);
       final segundoAlumno = await repositorio.iniciarSesion(
         'pedro.alumno@tutopar.local',
-        'Tutorias123!',
+        'admin1234',
       );
       expect(segundoAlumno.id, 'alumno-2');
     },
@@ -69,6 +69,8 @@ void main() {
             correo: '  NUEVA@ESCUELA.LOCAL ',
             contrasena: 'Clave123!',
             rol: rol,
+            materias: ['Matemáticas'],
+            horarios: ['Lunes 08:00 - 10:00'],
           ),
           isTrue,
         );
@@ -147,7 +149,7 @@ void main() {
       final repositorio = MockAuthRepository();
       final sesion = SesionProvider(repositorio);
       final solicitudes = SolicitudesProvider(MockSolicitudesRepository());
-      await sesion.iniciarSesion('ana.alumno@tutopar.local', 'Tutorias123!');
+      await sesion.iniciarSesion('ana.alumno@tutopar.local', 'admin1234');
       solicitudes.actualizarSesion(sesion);
       await solicitudes.cargar();
       await solicitudes.aceptar('sol-1');
@@ -158,7 +160,7 @@ void main() {
         }).estado,
         EstadoSolicitud.pendiente,
       );
-      await sesion.iniciarSesion('ana.tutor@tutopar.local', 'Tutorias123!');
+      await sesion.iniciarSesion('ana.tutor@tutopar.local', 'admin1234');
       solicitudes.actualizarSesion(sesion);
       await solicitudes.cargar();
       await solicitudes.aceptar('sol-2');
@@ -177,7 +179,7 @@ void main() {
         find.byType(TextField).at(0),
         'admin@tutopar.local',
       );
-      await probador.enterText(find.byType(TextField).at(1), 'Tutorias123!');
+      await probador.enterText(find.byType(TextField).at(1), 'admin1234');
       await probador.tap(find.text('Iniciar sesión'));
       await probador.pumpAndSettle();
       expect(find.text('Panel de administración'), findsOneWidget);
@@ -208,11 +210,27 @@ void main() {
       );
       await probador.enterText(find.byType(TextField).at(2), 'Clave123!');
       await probador.enterText(find.byType(TextField).at(3), 'OtraClave!');
+      await probador.enterText(
+        find.byType(TextField).at(4),
+        'Matemáticas, Física',
+      );
+      await probador.enterText(
+        find.byType(TextField).at(5),
+        'Lunes 08:00 - 10:00',
+      );
       await probador.ensureVisible(find.text('Registrarme'));
       await probador.tap(find.text('Registrarme'));
       await probador.pumpAndSettle();
       expect(find.text('Las contraseñas no coinciden.'), findsOneWidget);
       await probador.enterText(find.byType(TextField).at(3), 'Clave123!');
+      await probador.enterText(
+        find.byType(TextField).at(4),
+        'Matemáticas, Física',
+      );
+      await probador.enterText(
+        find.byType(TextField).at(5),
+        'Lunes 08:00 - 10:00',
+      );
       await probador.ensureVisible(find.text('Registrarme'));
       await probador.tap(find.text('Registrarme'));
       await probador.pumpAndSettle();
@@ -240,7 +258,7 @@ void main() {
         find.byType(TextField).at(0),
         'ana.alumno@tutopar.local',
       );
-      await probador.enterText(find.byType(TextField).at(1), 'Tutorias123!');
+      await probador.enterText(find.byType(TextField).at(1), 'admin1234');
       await probador.tap(find.text('Iniciar sesión'));
       await probador.pumpAndSettle();
       final contexto = probador.element(find.text('Ana Martínez'));

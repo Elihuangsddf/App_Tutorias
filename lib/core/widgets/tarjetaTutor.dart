@@ -116,7 +116,10 @@ class TutorCard extends StatelessWidget {
                         // Crea un texto visible.
                         Text(
                           // Convierte la calificación del tutor en texto con un decimal.
-                          tutor.calificacion.toStringAsFixed(1),
+                          // Distingue una cuenta nueva de una calificación real de cero.
+                          tutor.calificacion == 0
+                              ? 'Sin reseñas'
+                              : tutor.calificacion.toStringAsFixed(1),
                           // Establece el estilo visual al valor indicado.
                           style: const TextStyle(
                             // Establece la familia tipográfica al valor indicado.

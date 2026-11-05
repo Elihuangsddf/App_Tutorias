@@ -71,7 +71,7 @@ solicitud → Panel de solicitudes.
 - **Alumno:** explora tutores, filtra por materia/calificación/horario, envía solicitudes y
   consulta el estado de las suyas.
 - **Tutor:** incluye al docente; consulta y responde únicamente sus solicitudes.
-- **Administrador:** accede a un panel inicial propio con los datos de su sesión. La gestión de usuarios aún no está implementada.
+- **Administrador:** consulta las cuentas registradas (nombre, correo y rol), el total y los contadores por rol; puede actualizar el listado. Puede crear, editar y borrar alumnos y tutores, incluidos los datos de sus perfiles.
 - El registro público solo permite **Alumno** o **Tutor**. El administrador se crea por separado.
 
 ---
@@ -126,7 +126,7 @@ que cumplan los mismos contratos.
 `lib/core/routes/rutasAplicacion.dart` contiene rutas nombradas, la pantalla inicial por rol
 y la comprobación de acceso. El detalle del tutor y la nueva solicitud reciben su `idTutor`
 como argumento. El registro público permite crear cuentas de alumno o tutor; el rol de una
-sesión procede de la cuenta autenticada. El administrador tiene un panel informativo propio.
+sesión procede de la cuenta autenticada. El administrador tiene un panel de consulta de cuentas propio.
 
 ---
 
@@ -231,13 +231,27 @@ cuando se conecte Firebase.
 
 | Contrato | Métodos |
 |---|---|
-| `AuthRepository` | `iniciarSesion(correo, contrasena)`, `registrar(nombre, correo, contrasena, rol)`, `cerrarSesion()` |
+| `AuthRepository` | `obtenerUsuarios()`, `iniciarSesion(correo, contrasena)`, `registrar(nombre, correo, contrasena, rol)`, `cerrarSesion()` |
 | `TutoresRepository` | `obtenerTutores()`, `obtenerTutorPorId(id)` |
 | `SolicitudesRepository` | `crear(solicitud)`, `listarPorAlumno(idAlumno)`, `listarPorTutor(idTutor)`, `cambiarEstado(id, estado)` |
 
 El acceso comprueba correo y contraseña contra cuentas en memoria. El rol procede de la cuenta
 validada. El registro permite crear alumnos y tutores; se inicia sesión al completar el registro.
 Los datos del usuario nunca incluyen la contraseña en `toMap()`.
+
+El catálogo comparte las cuentas y los perfiles locales con el registro y la administración.
+El registro de tutor exige materias (separadas por comas) y horarios (separados por punto y coma).
+Ejemplo: `Matemáticas, Física` y `Lunes 08:00 - 10:00; Martes 14:00 - 16:00`.
+
+El administrador puede crear, modificar y borrar alumnos y tutores. En la edición del tutor
+puede agregar, cambiar o quitar materias y horarios, escribir una descripción y ajustar la
+puntuación de 0 a 5 con su representación en estrellas. Debe quedar al menos una materia y
+un horario. La contraseña vacía en una edición conserva la anterior. El borrado requiere
+confirmación; se conserva el historial de solicitudes. El rol de una cuenta existente y la
+cuenta del administrador están protegidos. Las cuentas de los tutores de ejemplo que antes
+no tenían acceso usan correos como `tutor-2@tutopar.local` y la contraseña `admin1234`.
+
+Los datos siguen guardándose solamente mientras la aplicación está abierta.
 
 ### Providers
 
@@ -265,7 +279,7 @@ Provider.
 | 4 | Detalle del tutor | Alumno | Muestra el perfil y abre el formulario. |
 | 5 | Nueva solicitud | Alumno | Valida materia, horario y mensaje. |
 | 6 | Solicitudes | Alumno y Tutor | Cada usuario consulta sus solicitudes; el tutor responde las que recibió. |
-| 7 | Administración | Administrador | Panel inicial con información de la sesión, sin gestión de usuarios todavía. |
+| 7 | Administración | Administrador | Información de sesión, cuentas registradas, resumen por rol y actualización del listado, con estados de carga, error y vacío. |
 
 ---
 
@@ -301,7 +315,7 @@ Las demás capturas están en [docs/capturas](docs/capturas/).
 
 ## Cuentas locales de prueba
 
-Todas usan la contraseña de demostración **`Tutorias123!`**.
+Todas usan la contraseña de demostración **`admin1234`**.
 
 | Correo | Rol | Pantalla inicial |
 |---|---|---|
@@ -368,7 +382,7 @@ El formulario utiliza una sola función para validar el mensaje al escribir y al
 | Providers y rutas con argumentos | Implementado. |
 | Tema y componentes reutilizables | Implementado. |
 | Siete pantallas y validación de solicitudes | Implementado. |
-| Pruebas automatizadas | 21 aprobadas: credenciales, registro, permisos, filtros, arranque real local y flujos visuales. |
+| Pruebas automatizadas | 26 pruebas: credenciales, registro, permisos, filtros, arranque real local, flujos visuales y aparición de tutores registrados en alumno y administrador. |
 | Análisis del código | Sin errores ni advertencias en `lib` y `test` (5 de noviembre de 2026). |
 | APK de entrega | Compilado en `build/app/outputs/flutter-apk/app-debug.apk`; la instalación y demo en dispositivo deben confirmarse. |
 | Autenticación real y persistencia | Pendientes para la Etapa 2. |

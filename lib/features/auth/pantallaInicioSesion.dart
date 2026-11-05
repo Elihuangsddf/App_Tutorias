@@ -47,6 +47,9 @@ class _LoginScreenState extends State<LoginScreen> {
       // Crea el objeto o la llamada TextEditingController.
       TextEditingController();
   // Prepara si se muestra el formulario de registro.
+  // Conserva los datos académicos del registro de tutor.
+  final _controladorMaterias = TextEditingController();
+  final _controladorHorarios = TextEditingController();
   bool _registrando = false;
   // Prepara el rol elegido para crear la cuenta.
   Rol _rolRegistro = Rol.alumno;
@@ -66,6 +69,8 @@ class _LoginScreenState extends State<LoginScreen> {
     // Libera el controlador de texto y sus recursos.
     _controladorConfirmacion.dispose();
     // Completa la liberación del estado de Flutter.
+    _controladorMaterias.dispose();
+    _controladorHorarios.dispose();
     super.dispose();
     // Cierra el bloque de instrucciones o la definición.
   }
@@ -143,6 +148,19 @@ class _LoginScreenState extends State<LoginScreen> {
         contrasena: _controladorContrasena.text,
         // Configura el rol guardado en la cuenta.
         rol: _rolRegistro,
+        // Limpia y elimina duplicados antes de guardar los datos.
+        materias: _controladorMaterias.text
+            .split(',')
+            .map((valor) => valor.trim())
+            .where((valor) => valor.isNotEmpty)
+            .toSet()
+            .toList(),
+        horarios: _controladorHorarios.text
+            .split(';')
+            .map((valor) => valor.trim())
+            .where((valor) => valor.isNotEmpty)
+            .toSet()
+            .toList(),
         // Cierra los argumentos de la operación actual.
       );
       // Ejecuta esta alternativa cuando la condición anterior no se cumplió.
@@ -326,6 +344,24 @@ class _LoginScreenState extends State<LoginScreen> {
                       onChanged: sesion.cargando ? null : _seleccionarRol,
                       // Cierra los argumentos de la operación actual.
                     ),
+                    // Solicita el perfil completo únicamente para tutores.
+                    if (_rolRegistro == Rol.tutor) ...[
+                      const SizedBox(height: 16),
+                      AppTextField(
+                        etiqueta: 'Materias (separadas por comas)',
+                        textoEjemplo: 'Matemáticas, Física',
+                        controlador: _controladorMaterias,
+                        habilitado: !sesion.cargando,
+                      ),
+                      const SizedBox(height: 16),
+                      AppTextField(
+                        etiqueta: 'Horarios (separados por ;)',
+                        textoEjemplo:
+                            'Lunes 08:00 - 10:00; Martes 14:00 - 16:00',
+                        controlador: _controladorHorarios,
+                        habilitado: !sesion.cargando,
+                      ),
+                    ],
                     // Cierra la lista de elementos.
                   ],
                   // Comprueba (sesion.error != null) ...[ antes de ejecutar el bloque.

@@ -1,3 +1,6 @@
+// Comparte las operaciones de administración local y los perfiles completos.
+import 'package:app_tutorias/repositories/gestionCuentas.dart';
+import 'package:app_tutorias/models/modeloTutor.dart';
 // Importa datosEjemplo.dart para utilizar sus componentes y clases.
 import 'package:app_tutorias/repositories/datosEjemplo.dart';
 // Importa modeloUsuario.dart para utilizar sus componentes y clases.
@@ -5,6 +8,8 @@ import 'package:app_tutorias/models/modeloUsuario.dart';
 
 // Este contrato permite reemplazar la demostración por una API local más adelante.
 abstract class AuthRepository {
+  // Consulta los datos públicos de las cuentas, sin incluir sus contraseñas.
+  Future<List<Usuario>> obtenerUsuarios();
   // Comprueba el correo y la contraseña, y obtiene el usuario de esa cuenta.
   Future<Usuario> iniciarSesion(String correo, String contrasena);
   // Valida los datos y crea únicamente una cuenta de alumno o tutor.
@@ -35,9 +40,26 @@ class ErrorAutenticacion implements Exception {
 
 // Demostración en memoria: las cuentas nuevas duran hasta cerrar la aplicación.
 // Estas credenciales de prueba no sustituyen el almacenamiento seguro en un servidor.
-class MockAuthRepository implements AuthRepository {
+// Comparte las operaciones de administración local y los perfiles completos.
+class MockAuthRepository implements AuthRepository, GestionCuentas {
   // Crea el objeto o la llamada MockAuthRepository.
   MockAuthRepository() {
+    // Agrega cuentas para poder administrar todos los perfiles de demostración.
+    for (final tutor in tutoresDemo) {
+      if (!usuariosDemo.any((usuario) => usuario.id == tutor.id)) {
+        _cuentas.add(
+          _CuentaLocal(
+            Usuario(
+              id: tutor.id,
+              nombre: tutor.nombre,
+              correo: '${tutor.id}@tutopar.local',
+              rol: Rol.tutor,
+            ),
+            'admin1234',
+          ),
+        );
+      }
+    }
     // Recorre los elementos de la lista indicada para comprobar o preparar cada uno.
     for (final usuario in usuariosDemo) {
       // Agrega la cuenta a la lista privada de esta demostración.
@@ -49,6 +71,103 @@ class MockAuthRepository implements AuthRepository {
 
   // Prepara las cuentas temporales de esta instancia.
   final List<_CuentaLocal> _cuentas = [];
+  // Mantiene los perfiles editables durante la ejecución actual.
+  final Map<String, Tutor> _perfiles = {
+    for (final tutor in tutoresDemo) tutor.id: tutor,
+  };
+  @override
+  List<Tutor> get perfilesTutores => List.unmodifiable(_perfiles.values);
+  // Relaciona cada perfil con el identificador de su cuenta.
+  @override
+  void guardarPerfil(Tutor perfil) {
+    _perfiles[perfil.id] = perfil;
+  }
+
+  // Valida antes de modificar para evitar cambios parciales.
+  @override
+  Future<void> guardarCuenta(
+    Usuario usuario,
+    String contrasena,
+    Tutor? perfil,
+  ) async {
+    final correo = _normalizarCorreo(usuario.correo);
+    _validarCorreo(correo);
+    if (usuario.nombre.trim().length < 2) {
+      throw const ErrorAutenticacion('Escribe el nombre completo.');
+    }
+    final indice = _cuentas.indexWhere(
+      (cuenta) => cuenta.usuario.id == usuario.id,
+    );
+    if (usuario.rol == Rol.administrador ||
+        (indice >= 0 && _cuentas[indice].usuario.rol == Rol.administrador)) {
+      throw const ErrorAutenticacion('Solo se administran alumnos y tutores.');
+    }
+    if (_cuentas.any(
+      (cuenta) =>
+          cuenta.usuario.id != usuario.id && cuenta.usuario.correo == correo,
+    )) {
+      throw const ErrorAutenticacion('Ya existe una cuenta con ese correo.');
+    }
+    if ((indice < 0 || contrasena.isNotEmpty) && contrasena.trim().length < 8) {
+      throw const ErrorAutenticacion(
+        'La contraseña debe tener al menos 8 caracteres.',
+      );
+    }
+    if (usuario.rol == Rol.tutor &&
+        (perfil == null ||
+            perfil.id != usuario.id ||
+            perfil.materias.isEmpty ||
+            perfil.horariosDisponibles.isEmpty ||
+            !perfil.calificacion.isFinite ||
+            perfil.calificacion < 0 ||
+            perfil.calificacion > 5)) {
+      throw const ErrorAutenticacion(
+        'Completa materias, horarios y una puntuación entre 0 y 5.',
+      );
+    }
+    // Al editar, una contraseña vacía conserva la anterior.
+    final cuenta = _CuentaLocal(
+      Usuario(
+        id: usuario.id,
+        nombre: usuario.nombre.trim(),
+        correo: correo,
+        rol: usuario.rol,
+      ),
+      contrasena.isEmpty && indice >= 0
+          ? _cuentas[indice].contrasena
+          : contrasena,
+    );
+    if (indice < 0) {
+      _cuentas.add(cuenta);
+    } else {
+      _cuentas[indice] = cuenta;
+    }
+    _perfiles.remove(usuario.id);
+    if (usuario.rol == Rol.tutor) {
+      _perfiles[usuario.id] = perfil!;
+    }
+  }
+
+  // Elimina la cuenta y su perfil para que desaparezca del catálogo.
+  @override
+  Future<void> borrarCuenta(String id) async {
+    if (_cuentas.any(
+      (cuenta) =>
+          cuenta.usuario.id == id && cuenta.usuario.rol == Rol.administrador,
+    )) {
+      throw const ErrorAutenticacion('No se puede borrar al administrador.');
+    }
+    _cuentas.removeWhere((cuenta) => cuenta.usuario.id == id);
+    _perfiles.remove(id);
+  }
+
+  // Entrega una copia de solo lectura para el catálogo y el panel administrativo.
+  @override
+  Future<List<Usuario>> obtenerUsuarios() async {
+    // Extrae únicamente el modelo público de cada cuenta registrada.
+    return List<Usuario>.unmodifiable(_cuentas.map((cuenta) => cuenta.usuario));
+  }
+
   // Prepara el contador para asignar identificadores nuevos.
   int _siguienteCuenta = 1;
 

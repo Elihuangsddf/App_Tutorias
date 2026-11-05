@@ -88,8 +88,8 @@ class _CatalogoTutoresScreenState extends State<CatalogoTutoresScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Detiene la acción si la pantalla ya se eliminó.
       if (!mounted) return;
-      // Comprueba (estadoDatos.tutores.isEmpty && !estadoDatos.cargando) para decidir si se ejecuta esta parte.
-      if (estadoDatos.tutores.isEmpty && !estadoDatos.cargando) {
+      // Actualiza también un catálogo ya cargado al volver a entrar como alumno.
+      if (!estadoDatos.cargando) {
         // Ejecuta cargarTutores sobre estadoDatos.
         estadoDatos.cargarTutores();
         // Cierra el bloque de if.

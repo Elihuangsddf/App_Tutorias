@@ -16,6 +16,29 @@ import 'package:app_tutorias/repositories/repositorioAutenticacion.dart';
 
 // Repositorio para la demostración local con PostgreSQL.
 class PostgresAuthRepository implements AuthRepository {
+  // Mantiene compatible el directorio con la implementación experimental de PostgreSQL.
+  @override
+  Future<List<Usuario>> obtenerUsuarios() async {
+    // Reutiliza la conexión y la configuración existentes.
+    final conexion = await _abrirConexion();
+    // Garantiza que la conexión se cierre incluso si falla la consulta.
+    try {
+      // Lee solo datos públicos de las cuentas activas; nunca consulta contraseñas.
+      final resultado = await conexion.execute(
+        // Conserva los nombres de columnas esperados por el modelo Usuario.
+        'SELECT id, nombre, correo, rol FROM public.usuarios WHERE activo = TRUE ORDER BY nombre',
+      );
+      // Convierte las filas en una lista que los consumidores no pueden modificar.
+      return List<Usuario>.unmodifiable(
+        // Reutiliza la conversión del modelo para validar también el rol.
+        resultado.map((fila) => Usuario.fromMap(fila.toColumnMap())),
+      );
+    } finally {
+      // Libera la conexión al terminar la lectura.
+      await conexion.close();
+    }
+  }
+
   // Abre una conexión nueva para cada operación.
   Future<Connection> _abrirConexion() async {
     // Obtiene las credenciales del entorno de Windows.

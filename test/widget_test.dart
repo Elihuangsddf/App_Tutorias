@@ -27,7 +27,7 @@ void main() {
       find.byType(TextField).at(0),
       'ana.alumno@tutopar.local',
     );
-    await probador.enterText(find.byType(TextField).at(1), 'Tutorias123!');
+    await probador.enterText(find.byType(TextField).at(1), 'admin1234');
 
     await probador.tap(find.text('Iniciar sesión'));
     await probador.pumpAndSettle();
@@ -49,7 +49,7 @@ void main() {
       find.byType(TextField).at(0),
       'ana.tutor@tutopar.local',
     );
-    await probador.enterText(find.byType(TextField).at(1), 'Tutorias123!');
+    await probador.enterText(find.byType(TextField).at(1), 'admin1234');
 
     await probador.tap(find.text('Iniciar sesión'));
     await probador.pumpAndSettle();

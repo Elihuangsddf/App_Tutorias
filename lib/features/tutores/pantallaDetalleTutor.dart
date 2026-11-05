@@ -277,7 +277,10 @@ class _DetalleTutorScreenState extends State<DetalleTutorScreen> {
                       // Crea un texto visible.
                       Text(
                         // Proporciona este texto al la configuración de Text.
-                        '${tutor.calificacion.toStringAsFixed(1)} de 5',
+                        // Una cuenta recién registrada todavía no tiene evaluaciones.
+                        tutor.calificacion == 0
+                            ? 'Sin reseñas'
+                            : '${tutor.calificacion.toStringAsFixed(1)} de 5',
                         // Establece el estilo visual al valor indicado.
                         style: const TextStyle(
                           // Establece la familia tipográfica al valor indicado.
@@ -415,15 +418,19 @@ class _DetalleTutorScreenState extends State<DetalleTutorScreen> {
             // Establece el único componente visual contenido al valor indicado.
             child: PrimaryButton(
               // Establece el texto que se va a utilizar al valor indicado.
-              texto: 'Solicitar tutoría',
+              // Aclara si todavía faltan datos para agendar con este tutor.
+              texto: tutor.materias.isEmpty || tutor.horariosDisponibles.isEmpty
+                  ? 'Perfil pendiente de completar'
+                  : 'Solicitar tutoría',
               // Establece el icono del componente al valor indicado.
               icono: Icons.send_rounded,
               // Define la acción al presionar el botón mediante una función.
-              alPresionar: () {
-                // Declara en el contrato la operación que abre el formulario con el identificador del tutor.
-                return _abrirFormulario(tutor);
-                // Cierra el bloque de instrucciones.
-              },
+              // Solo permite agendar cuando hay materias y horarios reales.
+              alPresionar:
+                  tutor.materias.isEmpty || tutor.horariosDisponibles.isEmpty
+                  ? null
+                  // Conserva el formulario existente para los perfiles completos.
+                  : () => _abrirFormulario(tutor),
               // Cierra la configuración de PrimaryButton.
             ),
             // Cierra la configuración de Padding.
